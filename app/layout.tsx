@@ -11,15 +11,70 @@ import { SITE } from '@/lib/site';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  title: { default: 'Shukfinch | Smart Finance. Better Future.', template: '%s | Shukfinch' },
-  description: 'SEBI registered stock broker on Dalal Street, Mumbai. Equity, IPOs and ETFs with 50+ years of market experience and a team you can call.',
+  title: {
+    default: 'Shukfinch | Smart Finance. Better Future.',
+    template: '%s | Shukfinch',
+  },
+  description:
+    'SEBI registered stock broker on Dalal Street, Mumbai. Equity, IPOs and ETFs with 50+ years of market experience and personal broker support.',
+  keywords: [
+    'Shukfinch',
+    'Stock Broker Mumbai',
+    'SEBI Registered Broker',
+    'Dalal Street Broker',
+    'Demat Account',
+    'Trading Account',
+    'Equity Trading',
+    'IPO Application',
+    'ETF Investments',
+  ],
+  authors: [{ name: 'Shukfinch' }],
+  creator: 'Shukfinch',
+  publisher: 'Shukfinch',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: SITE.url,
+    siteName: SITE.name,
+    title: 'Shukfinch | Smart Finance. Better Future.',
+    description:
+      'SEBI registered stock broker on Dalal Street, Mumbai. Equity, IPOs and ETFs with 50+ years of market experience and personal broker support.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Shukfinch | Smart Finance. Better Future.',
+    description:
+      'SEBI registered stock broker on Dalal Street, Mumbai. Equity, IPOs and ETFs with 50+ years of market experience and personal broker support.',
+  },
 };
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0A1D37',
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body><Header /><main>{children}</main><Footer /></body>
+      <body>
+        <Header />
+        <main>{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }

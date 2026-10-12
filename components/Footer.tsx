@@ -15,7 +15,7 @@ export function Footer() {
         <div><h4>Contact</h4><a href={SITE.tel}>{SITE.phone} / 86</a><a href={'mailto:' + SITE.email}>{SITE.email}</a><Link href="/personal-support">Request a Callback</Link></div>
       </div>
       <div className="disc">
-        SEBI Registration No. {SITE.sebi} · BSE member code {SITE.bse} · Depository Participant details <span className="hl">to confirm</span>. {RISK} Shukfinch does not promise or guarantee returns.
+        SEBI Registration No. {SITE.sebi} · BSE Member Code {SITE.bse}. {RISK} Shukfinch does not promise or guarantee returns.
       </div>
     </div></footer>
   );

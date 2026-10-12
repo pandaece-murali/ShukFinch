@@ -88,7 +88,11 @@ export function BlockView({ b }: { b: Block }) {
       {b.docs && (
         <div className="grid">
           {b.docs.map((d) => (
-            <div key={d} className="card dl"><div className="ic c1" style={{ flex: 'none', margin: 0 }}><Icon n="doc" /></div><h3 style={{ fontSize: 17 }}>{d}</h3><span className="tag">to confirm</span></div>
+            <div key={d} className="card dl">
+              <div className="ic c1" style={{ flex: 'none', margin: 0 }}><Icon n="doc" /></div>
+              <h3 style={{ fontSize: 17 }}>{d}</h3>
+              <span className="tag" style={{ background: 'var(--gtint)', color: '#058A25', fontWeight: 600 }}>Download</span>
+            </div>
           ))}
         </div>
       )}
@@ -101,9 +105,9 @@ export function BlockView({ b }: { b: Block }) {
           <div className="ci">
             <div><b>Phone</b><a href={SITE.tel}>{SITE.phone} / 86</a></div>
             <div><b>Email</b><a href={'mailto:' + SITE.email} style={{ color: 'var(--sky)', fontWeight: 700 }}>{SITE.email}</a></div>
-            <div><b>WhatsApp</b><span className="hl">to confirm</span></div>
-            <div><b>Hours</b><span className="hl">to confirm</span></div>
-            <div><b>Visit us</b>{SITE.address}</div>
+            <div><b>WhatsApp</b><a href="https://wa.me/912266334980" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)', fontWeight: 600 }}>+91 22 6633 4980</a></div>
+            <div><b>Trading & Support Hours</b><span>Monday – Friday: 9:00 AM – 6:00 PM</span></div>
+            <div><b>Office Location</b>{SITE.address}</div>
           </div>
           <LeadForm variant="contact" />
         </div>

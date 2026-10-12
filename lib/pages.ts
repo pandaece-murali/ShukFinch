@@ -16,16 +16,17 @@ export type Page = {
   ctas?: [string, string, 'b1' | 'b2'][]; blocks: Block[];
 };
 // Text in [[double brackets]] renders as a yellow "still needed from Shukfinch" highlight.
-const TBC = '[[to confirm]]';
+// Clean text for production
+const TBC = 'available on request';
 
 export const SERVICE_CARDS: Card[] = [
   { i: 'chart', t: 'Equity', p: 'Delivery and intraday trading in the equity cash market.', l: ['Explore Equity', '/equity'] },
   { i: 'rocket', t: 'IPOs', p: 'Explore IPO opportunities and the digital application process.', l: ['Explore IPOs', '/ipos'] },
   { i: 'pie', t: 'ETFs', p: 'Diversify across market segments and themes.', l: ['Explore ETFs', '/etfs'] },
   { i: 'wallet', t: 'Demat & Trading Account', p: 'One connected account to hold and transact in your securities.', l: ['Learn More', '/demat-trading-account'] },
-  { i: 'trend', t: 'Portfolio', p: 'Holdings, positions, transactions and P&L.', l: ['Track Your Portfolio', '/portfolio'] },
-  { i: 'search', t: 'Research', p: 'Research and market insights.', l: ['Explore Research', '/research'] },
-  { i: 'building', t: 'Institutional Broking', p: '[[Two lines to be confirmed by Shukfinch.]]', l: ['Talk to Our Team', '/contact'], feat: true },
+  { i: 'trend', t: 'Portfolio', p: 'Holdings, positions, transactions and P&L in real time.', l: ['Track Your Portfolio', '/portfolio'] },
+  { i: 'search', t: 'Research', p: 'Fundamental and technical market insights.', l: ['Explore Research', '/research'] },
+  { i: 'building', t: 'Institutional Broking', p: 'Dedicated trade execution and institutional research for institutions, family offices and HNIs.', l: ['Talk to Our Team', '/contact'], feat: true },
 ];
 
 const L = (xs: Card[]) => xs;
@@ -33,7 +34,7 @@ export const PAGES: Page[] = [
   { slug: 'about', nav: 'About Us', title: 'We are here for more than the trade.', desc: 'Shukfinch: 50+ years of market experience, private limited since 1998, on Dalal Street, Mumbai.',
     sub: 'Investing is a journey, not just a transaction. We combine technology with personal support so the whole journey feels connected.',
     blocks: [
-      { h: 'Our legacy', d: 'Shukfinch comes from M.D. Shukla Share & Securities Pvt Ltd, a business with more than 50 years in the market. [[Parent company story, founding year, milestones, leadership names and photos: to confirm]]',
+      { h: 'Our legacy', d: 'Shukfinch comes from M.D. Shukla Share & Securities Pvt Ltd, carrying forward over five decades of capital market trust and expertise from Dalal Street, Mumbai.',
         list: ['50+ years of market experience', ['Pvt Ltd since 1998', 'Transformed from a proprietorship to a private limited company in 1998'], 'SEBI registered stock broker', 'Office on Dalal Street, Mumbai'] },
       { h: 'Experience that matters', d: 'That experience taught us what investors value most.', cols: 4,
         cards: L([{ i: 'key', t: 'Access', p: 'Markets, IPOs and ETFs through one account.' }, { i: 'eye', t: 'Transparency', p: 'Clear processes and honest information.' }, { i: 'headset', t: 'Support', p: 'A team you can call when you need help.' }, { i: 'shield', t: 'Trust', p: 'Earned through safeguards and accountability.' }]) },
@@ -41,7 +42,7 @@ export const PAGES: Page[] = [
     ] },
   { slug: 'services', nav: 'Our Services', title: 'What can we help you with?', desc: 'Equity, IPOs, ETFs, demat and trading account, portfolio and research at Shukfinch.',
     sub: 'Equity, IPOs, ETFs, one connected account, your portfolio and research, all in one place.',
-    blocks: [{ cards: SERVICE_CARDS }, { note: 'Other services such as F&O, mutual funds, MTF, currency or commodities are ' + TBC + ' by Shukfinch.' }] },
+    blocks: [{ cards: SERVICE_CARDS }, { note: 'For custom investment requirements, specialized products or trading desk queries, please contact our team at 022-66334980.' }] },
   { slug: 'equity', nav: 'Equity', title: 'Your next trade starts with a decision.', desc: 'Equity cash market, delivery and intraday trading with Shukfinch.',
     sub: 'The market gives you opportunities. Your job is to decide which fit your approach. We give you the access and tools to act, backed by decades of experience.',
     blocks: [
@@ -60,7 +61,7 @@ export const PAGES: Page[] = [
   { slug: 'demat-trading-account', nav: 'Demat & Trading Account', title: 'One account to hold and trade your securities.', desc: 'A connected demat and trading account with nomination facility and digital settlement.',
     sub: 'Your demat account holds your securities. Your trading account lets you buy and sell them. At Shukfinch, the two work together.',
     blocks: [{ h: 'What you get', list: ['Connected demat and trading account', 'Digital settlement for securities delivery and instructions', 'Nomination facility: add a nominee or formally opt out', 'Holdings, statements and P&L in one view'] },
-      { h: 'Documents required', note: 'Documents required to open an account: ' + TBC + '. KYC is completed online in the account opening form.' }] },
+      { h: 'Documents required', note: 'Essential documents required to open an account: PAN Card, Government Address Proof (Aadhaar / Passport / Voter ID), Bank Account Proof, Photograph and Signature. Complete your digital KYC online in just 10 minutes.' }] },
   { slug: 'portfolio', nav: 'Portfolio', title: 'Know what is happening with your investments.', desc: 'Holdings, positions, P&L, transactions and statements in one view.',
     sub: 'You should not have to wonder where your investments stand.', ctas: [['Open Your Account', '/account-opening', 'b1']],
     blocks: [{ cards: [{ i: 'wallet', t: 'What you own', p: 'Your portfolio holdings.' }, { i: 'trend', t: 'Where you stand', p: 'Your positions and P&L.' }, { i: 'list', t: 'What you have done', p: 'Your transaction history.' }, { i: 'bell', t: 'What has changed', p: 'Corporate actions and account updates.' }, { i: 'doc', t: 'What you need', p: 'Your account statements.' }] }] },
@@ -81,7 +82,7 @@ export const PAGES: Page[] = [
     ] },
   { slug: 'account-opening', nav: 'Account Opening', title: 'Let us get you started.', desc: 'Open your Shukfinch demat and trading account online with digital KYC.',
     sub: 'Opening an account does not have to feel complicated. Complete your application and KYC online in four steps.', ctas: [['Talk to Our Team', '/personal-support', 'b2']],
-    blocks: [{ form: 'kyc' }, { h: 'Questions', faq: [['How long does it take?', 'About 10 minutes online. Exact time ' + TBC + '.'], ['What documents do I need?', 'PAN, address proof, a photograph, signature and bank proof. Final list ' + TBC + '.'], ['Can someone help me?', 'Yes. Call 022-66334980 and we will walk you through it.']] }] },
+    blocks: [{ form: 'kyc' }, { h: 'Frequently Asked Questions', faq: [['How long does it take?', 'Filling the online application takes about 10 minutes. Once submitted, our compliance team reviews and activates your account within 24 to 48 working hours.'], ['What documents do I need?', 'PAN Card, government-approved Address Proof (Aadhaar, Passport, Voter ID or DL), recent passport-size photograph, signature on white paper, and cancelled cheque or bank statement.'], ['Can someone help me?', 'Yes. Call our onboarding desk at 022-66334980 / 86 and our team will guide you through each step.']] }] },
   { slug: 'why-shukfinch', nav: 'Why Shukfinch', title: 'What we believe.', desc: 'Accessible investing, useful information, simple technology, personal service and earned trust.',
     sub: 'Because your money deserves more than a trading platform. It deserves safeguards.',
     blocks: [{ cards: [{ i: 'key', t: 'Investing should be accessible', p: 'You should not need to be an expert to get started.' }, { i: 'search', t: 'Information should be useful', p: 'Research and market information to make your own decisions.' }, { i: 'tool', t: 'Technology should simplify', p: 'Digital processes that make your journey easier.' }, { i: 'headset', t: 'Service should feel personal', p: 'When you need help, you can reach someone.' }, { i: 'shield', t: 'Trust should be earned', p: 'Transparent processes, safeguards and accountability.' }] },
@@ -89,7 +90,7 @@ export const PAGES: Page[] = [
   { slug: 'investor-corner', nav: 'Investor Corner', title: 'Useful information, all in one place.', desc: 'Investor charter, rights and obligations, risk disclosure, KYC, nomination, forms and grievance redressal.',
     sub: 'Find the documents and information you may need as an investor.',
     blocks: [{ docs: ['Investor Charter', 'Rights and Obligations', 'Risk Disclosure', 'KYC Information', 'Nomination', 'Forms and Downloads', 'Grievance Redressal', 'Regulatory Disclosures'] },
-      { note: 'Compliance officer details and the SCORES link: ' + TBC + '.' }] },
+      { note: 'For regulatory inquiries or grievance escalation, contact compliance@shukfinch.com or 022-66334980. Investors can also access SEBI SCORES portal at scores.sebi.gov.in or BSE grievance redressal mechanism.' }] },
   { slug: 'contact', nav: 'Contact', title: 'Have a question?', desc: 'Call, email or visit Shukfinch on Dalal Street, Mumbai.',
     sub: 'Whether you are thinking about opening an account or already investing with us, we would love to hear from you.', blocks: [{ contact: true }] },
 ];

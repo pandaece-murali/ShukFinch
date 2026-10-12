@@ -23,9 +23,9 @@ export async function pushToGhl(l: Lead) {
   // LeadConnector API v2: create or update the contact by phone/email.
   const r = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.GHL_API_TOKEN}`, Version: '2021-07-28', 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${process.env.GHL_API_TOKEN?.trim()}`, Version: '2021-07-28', 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      locationId: process.env.GHL_LOCATION_ID, firstName, lastName: rest.join(' '), phone, email: l.email || undefined,
+      locationId: process.env.GHL_LOCATION_ID?.trim(), firstName, lastName: rest.join(' '), phone, email: l.email || undefined,
       city: l.city, source: 'shukfinch.com', tags,
       customFields: [], // map interest / kycStatus / message to your custom field IDs here if needed
     }),
