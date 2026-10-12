@@ -1,23 +1,45 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { NAV, SITE } from '@/lib/site';
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
   const path = usePathname();
 
-  useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    setOpen(false);
+    setActiveSubmenu(null);
+  }, [path]);
 
-  // Handle escape key
+  // Handle escape key and click outside
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setActiveSubmenu(null);
+      }
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setActiveSubmenu(null);
+      }
     };
     window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
+
+  const toggleSubmenu = (name: string) => {
+    setActiveSubmenu((prev) => (prev === name ? null : name));
+  };
 
   return (
     <>
@@ -27,17 +49,31 @@ export function Header() {
           <span className="top-call"><a href={SITE.tel}>Call us: <b>{SITE.phone} / 86</b></a></span>
         </div>
       </div>
-      <nav>
+      <nav ref={navRef}>
         <div className="w">
-          <Link className="logo" href="/">
+          <Link className="logo" href="/" onClick={() => setOpen(false)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img alt="Shukfinch Logo" src="/logo-mark.png" height={46} width={46} />
             <div>Shuk<i>Finch</i></div>
           </Link>
 
           <div className={'menu' + (open ? ' open' : '')} id="menu">
-            <div className="dd">
-              <Link href="/services">Services</Link>
+            {/* Services Dropdown */}
+            <div className={'dd' + (activeSubmenu === 'services' ? ' open' : '')}>
+              <div className="dd-header">
+                <Link href="/services" onClick={() => setOpen(false)}>
+                  Services
+                </Link>
+                <button
+                  type="button"
+                  className="dd-toggle"
+                  aria-label="Toggle Services submenu"
+                  aria-expanded={activeSubmenu === 'services'}
+                  onClick={() => toggleSubmenu('services')}
+                >
+                  <span className="dd-arrow" />
+                </button>
+              </div>
               <div className="ddm">
                 {NAV.services.map(([t, h]) => (
                   <Link key={h} href={h} onClick={() => setOpen(false)}>
@@ -46,8 +82,23 @@ export function Header() {
                 ))}
               </div>
             </div>
-            <div className="dd">
-              <Link href="/about">Company</Link>
+
+            {/* Company Dropdown */}
+            <div className={'dd' + (activeSubmenu === 'company' ? ' open' : '')}>
+              <div className="dd-header">
+                <Link href="/about" onClick={() => setOpen(false)}>
+                  Company
+                </Link>
+                <button
+                  type="button"
+                  className="dd-toggle"
+                  aria-label="Toggle Company submenu"
+                  aria-expanded={activeSubmenu === 'company'}
+                  onClick={() => toggleSubmenu('company')}
+                >
+                  <span className="dd-arrow" />
+                </button>
+              </div>
               <div className="ddm">
                 {NAV.company.map(([t, h]) => (
                   <Link key={h} href={h} onClick={() => setOpen(false)}>
@@ -56,6 +107,7 @@ export function Header() {
                 ))}
               </div>
             </div>
+
             {NAV.links.map(([t, h]) => (
               <Link key={h} href={h} onClick={() => setOpen(false)}>
                 {t}

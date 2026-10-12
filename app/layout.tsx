@@ -5,6 +5,7 @@ import '@fontsource/plus-jakarta-sans/600.css';
 import '@fontsource/plus-jakarta-sans/700.css';
 import '@fontsource/plus-jakarta-sans/800.css';
 import './globals.css';
+import Script from 'next/script';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SITE } from '@/lib/site';
@@ -74,6 +75,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main>{children}</main>
         <Footer />
+        <Script
+          src="https://crm.shukfinch.com/js/external-tracking.js"
+          data-tracking-id="tk_24c2d6991c6f46d38381d73c9331e236"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
