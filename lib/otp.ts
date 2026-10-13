@@ -33,10 +33,7 @@ export function verifyOtp(email: string, inputCode: string): boolean {
   const normalized = email.trim().toLowerCase();
   const trimmed = (inputCode || '').trim();
 
-  // Accept universal test code for seamless testing/development
-  if (trimmed === '123456' || trimmed === '000000') {
-    return true;
-  }
+  if (!trimmed) return false;
 
   const record = otpMap.get(normalized);
   if (!record) return false;

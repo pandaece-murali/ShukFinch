@@ -9,8 +9,6 @@ export async function POST(req: Request) {
   const get = (k: string) => String(fd.get(k) ?? '').trim();
   const email = get('email').toLowerCase();
 
-  console.log('[kyc] Form submitted with Name:', get('name'), 'Phone:', get('phone'), 'Email:', email);
-
   // Collect text fields and file attachments from the form submission
   const fields: Record<string, string> = {};
   const attachments: AttachmentItem[] = [];
@@ -38,8 +36,10 @@ export async function POST(req: Request) {
   // Build application summary note for GoHighLevel CRM
   const kycNote = [
     `📋 Account Opening & KYC Application Summary:`,
+    get('fatherName') ? `• Father's / Spouse's Name: ${get('fatherName')}` : null,
     get('pan') ? `• PAN: ${get('pan').toUpperCase()}` : null,
     get('dob') ? `• Date of Birth: ${get('dob')} (${get('gender') || 'N/A'})` : null,
+    get('addressProof') ? `• Address Proof Type: ${get('addressProof')}` : null,
     get('address') ? `• Address: ${get('address')}, ${get('city') || ''} ${get('pin') ? 'PIN: ' + get('pin') : ''}` : null,
     get('occupation') ? `• Occupation: ${get('occupation')} | Income: ${get('income') || 'N/A'}` : null,
     get('interest') ? `• Interest: ${get('interest')}` : null,
@@ -51,11 +51,13 @@ export async function POST(req: Request) {
   const lead = cleanLead(
     {
       name: get('name'),
+      fatherName: get('fatherName'),
       phone: get('phone'),
       email,
       pan: get('pan'),
       dob: get('dob'),
       gender: get('gender'),
+      addressProof: get('addressProof'),
       address: get('address'),
       city: get('city'),
       pin: get('pin'),
@@ -76,10 +78,7 @@ export async function POST(req: Request) {
   );
 
   if (!lead) {
-    console.error('==================================================');
-    console.error('❌ [KYC SUBMISSION ERROR] Validation failed:');
-    console.error(`   Name: "${get('name')}" | Phone: "${get('phone')}" | Email: "${email}"`);
-    console.error('==================================================');
+    console.warn(`[kyc] Validation failed: Name: "${get('name')}" | Phone: "${get('phone')}" | Email: "${email}"`);
     return NextResponse.json(
       { ok: false, error: 'invalid_lead', message: 'Please ensure full name (min 2 characters), 10-digit mobile number, and a valid email are provided.' },
       { status: 422 }
@@ -97,7 +96,6 @@ export async function POST(req: Request) {
           console.error('❌ [KYC GHL ERROR]:', ghlRes.error);
         } else {
           contactId = ghlRes.contactId || 'Success';
-          console.log('[kyc] GHL contact created/updated successfully, ID:', contactId);
         }
       } catch (ghlErr) {
         console.error('❌ [KYC GHL ERROR]:', (ghlErr as Error).message);
@@ -132,19 +130,11 @@ export async function POST(req: Request) {
       console.error('❌ [KYC EMAIL ERROR]:', mailErr);
     }
 
-    console.log('==================================================');
-    console.log('✅ [KYC SUBMITTED SUCCESSFULLY]');
-    console.log(`   Applicant: ${lead.name} | Phone: ${lead.phone} | Email: ${lead.email}`);
-    console.log(`   CRM Contact ID: ${contactId}`);
-    console.log(`   Attached Documents (${attachments.length}): ${attachments.map((a) => a.filename).join(', ') || 'None'}`);
-    console.log(`   Alert Email: ${emailSent ? 'Sent to info@shukfinch.com' : 'Pending / Not sent'}`);
-    console.log('==================================================');
+    console.log(`[kyc] Application submitted: ${lead.name} (${lead.phone}) - CRM Contact ID: ${contactId} | Email: ${emailSent ? 'sent' : 'pending'}`);
 
     return NextResponse.json({ ok: true, message: 'Submitted successfully' });
   } catch (e) {
-    console.error('==================================================');
-    console.error('❌ [KYC SUBMISSION EXCEPTION]:', (e as Error).message);
-    console.error('==================================================');
+    console.error('[kyc] Submission exception:', (e as Error).message);
     return NextResponse.json({ ok: false, error: 'submission_failed', message: 'We could not submit right now. Please try again.' }, { status: 502 });
   }
 }

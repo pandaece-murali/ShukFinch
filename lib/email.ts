@@ -88,7 +88,7 @@ export const getLeadBccRecipients = (): string | undefined => {
 export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<boolean> {
   const transporter = getTransporter();
   if (!transporter) {
-    console.warn(`[email] Gmail not configured. OTP for ${toEmail} is: ${otpCode}`);
+    console.warn(`[email] Gmail not configured (check GMAIL_USER & GMAIL_APP_PASSWORD)`);
     return true; // dev fallback
   }
 

@@ -21,7 +21,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'missing_consent', message: 'Please accept the consent checkbox to continue.' }, { status: 400 });
   }
 
-  const lead = cleanLead(d, form, [TAGS[form]]);
+  const noteBody = d.message ? `💬 Contact Inquiry Message:\n${String(d.message).trim()}` : undefined;
+  const lead = cleanLead({ ...d, noteBody }, form, [TAGS[form]]);
   if (!lead) {
     console.error(`❌ [LEAD ERROR] Validation failed for lead:`, { name: d.name, phone: d.phone, email: d.email });
     return NextResponse.json({
@@ -55,11 +56,7 @@ export async function POST(req: Request) {
     console.warn('[lead] GHL not configured. Check GHL_API_TOKEN and GHL_LOCATION_ID in .env');
   }
 
-  console.log('--------------------------------------------------');
-  console.log(`✅ [LEAD SUBMITTED SUCCESSFULLY]`);
-  console.log(`   Form: ${form} | Name: ${lead.name} | Phone: ${lead.phone} | Email: ${lead.email || 'N/A'}`);
-  console.log(`   CRM Contact ID: ${contactId}`);
-  console.log('--------------------------------------------------');
+  console.log(`[lead] Submitted (${form}): ${lead.name} (${lead.phone}) - CRM Contact ID: ${contactId}`);
 
   return NextResponse.json({ ok: true, message: 'Submitted successfully' });
 }

@@ -21,9 +21,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       message: configured && sent
-        ? `Verification code sent to your email. (Test code: ${code})`
-        : `Verification code generated. (Test code: ${code})`,
-      devCode: code,
+        ? 'Verification code sent to your email.'
+        : 'Verification code generated.',
     });
   } catch (err) {
     console.error('[send-otp] Error:', err);

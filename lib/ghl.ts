@@ -1,9 +1,9 @@
-// Sends a lead to GoHighLevel. Runs on the server only, so tokens never reach the browser.
 export type Lead = {
   form: string;
   name: string;
   phone: string;
   email?: string;
+  fatherName?: string;
   interest?: string;
   kycStatus?: string;
   city?: string;
@@ -22,6 +22,7 @@ export type Lead = {
   ifsc?: string;
   nomineeName?: string;
   nomineeRel?: string;
+  addressProof?: string;
   verifyMethod?: string;
   noteBody?: string;
   tags: string[];
@@ -52,18 +53,16 @@ function parseEnvFile(filePath: string, key: string): string {
 }
 
 // Robust helper to read GHL env variables even if Next.js hasn't reloaded .env
-export function getGhlEnv(key: 'GHL_WEBHOOK_URL' | 'GHL_API_TOKEN' | 'GHL_LOCATION_ID'): string {
-  const envVal = process.env[key]?.replace(/\r/g, '').trim();
-  if (envVal && !envVal.startsWith('#')) return envVal;
-
+export function getGhlEnv(key: string): string {
   const cwd = process.cwd();
   for (const f of ['.env.local', '.env']) {
     const val = parseEnvFile(path.join(cwd, f), key);
     if (val && !val.startsWith('#')) {
-      process.env[key] = val;
       return val;
     }
   }
+  const envVal = process.env[key]?.replace(/\r/g, '').trim();
+  if (envVal && !envVal.startsWith('#')) return envVal;
   return '';
 }
 
@@ -94,10 +93,11 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
   if (l.occupation) tags.push(`Occupation: ${l.occupation}`);
   if (l.income) tags.push(`Income: ${l.income}`);
   if (l.pan) tags.push(`PAN: ${l.pan.toUpperCase()}`);
+  if (l.gender) tags.push(`Gender: ${l.gender}`);
+  if (l.addressProof) tags.push(`Proof: ${l.addressProof}`);
   if (l.bestTime) tags.push(`Best Time: ${l.bestTime}`);
 
   if (webhookUrl) {
-    console.log('[ghl] Forwarding lead to GHL Inbound Webhook:', l.name);
     const r = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,6 +124,10 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
     firstName: firstName || 'Applicant',
     phone,
     source: 'shukfinch.com',
+    type: 'lead',
+    country: 'IN',
+    timezone: 'Asia/Kolkata',
+    website: 'https://shukfinch.com',
     tags,
   };
 
@@ -136,11 +140,27 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
     payload.dateOfBirth = l.dateOfBirth.trim();
   }
 
-  console.log('[ghl] Posting to LeadConnector contacts/upsert for Location:', locationId, {
-    name: `${firstName} ${rest.join(' ')}`.trim(),
-    phone,
-    email: l.email,
-  });
+  // Custom Fields mapping (GoHighLevel Custom Field IDs)
+  const customFields: Array<{ id: string; value: unknown }> = [];
+  const addCustomField = (envKey: string, val: unknown) => {
+    const id = getGhlEnv(envKey);
+    if (id && val !== undefined && val !== null && String(val).trim() !== '') {
+      customFields.push({ id, value: val });
+    }
+  };
+
+  addCustomField('GHL_FIELD_FATHER_NAME', l.fatherName?.trim());
+  addCustomField('GHL_FIELD_GENDER', l.gender?.trim());
+  addCustomField('GHL_FIELD_OCCUPATION', l.occupation?.trim());
+  addCustomField('GHL_FIELD_ANNUAL_INCOME', l.income?.trim());
+  addCustomField('GHL_FIELD_MOST_INTERESTED_SERVICE', l.interest?.trim());
+  addCustomField('GHL_FIELD_PAN_NUMBER', l.pan?.trim().toUpperCase());
+  addCustomField('GHL_FIELD_ADDRESS_PROOF_TYPE', l.addressProof?.trim());
+  addCustomField('GHL_FIELD_MESSAGE', l.message?.trim());
+
+  if (customFields.length > 0) {
+    payload.customFields = customFields;
+  }
 
   const r = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
     method: 'POST',
@@ -164,7 +184,6 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
   }
 
   const contactId = data?.contact?.id;
-  console.log('[ghl] Contact upserted successfully! Contact ID:', contactId);
 
   // If detailed application summary note is provided, attach as a Contact Note in GHL
   if (l.noteBody && contactId) {
@@ -178,9 +197,7 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
         },
         body: JSON.stringify({ body: l.noteBody }),
       });
-      if (noteRes.ok) {
-        console.log('[ghl] Application summary note attached successfully to Contact:', contactId);
-      } else {
+      if (!noteRes.ok) {
         const noteErr = await noteRes.text().catch(() => '');
         console.warn(`[ghl] Note creation status ${noteRes.status}:`, noteErr);
       }
@@ -205,10 +222,12 @@ export function cleanLead(d: Record<string, unknown>, form: string, tags: string
     name,
     phone,
     email: email || undefined,
+    fatherName: s(d.fatherName, 120),
     interest: s(d.interest),
     kycStatus: s(d.kycStatus),
     city: s(d.city),
     address: s(d.address, 500),
+    addressProof: s(d.addressProof, 100),
     postalCode: s(d.pin || d.postalCode, 10),
     dateOfBirth: s(d.dob || d.dateOfBirth, 20),
     gender: s(d.gender, 20),
