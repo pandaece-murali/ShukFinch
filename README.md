@@ -25,6 +25,9 @@ All form submissions and verification OTPs can be delivered using Gmail SMTP:
    - `GMAIL_USER=yourbusiness@gmail.com`
    - `GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx`
    - `NOTIFICATION_EMAIL=info@shukfinch.com`
+   - `NOTIFICATION_CC=compliance@shukfinch.com,director@shukfinch.com` *(optional CC recipients)*
+   - `NOTIFICATION_BCC=archive@shukfinch.com` *(optional BCC recipients)*
+   - `KYC_NOTIFICATION_CC=` / `KYC_NOTIFICATION_BCC=` *(optional KYC-specific overrides)*
 3. Features activated automatically:
    - Real 6-digit email verification OTP sent directly to the client's inbox (`/api/send-otp`).
    - Instant lead email alerts for Hero Quick Apply, Request a Callback, and Contact forms (`/api/lead`).

@@ -12,7 +12,20 @@ export const SITE = {
 export const RISK =
   'Investments in securities markets are subject to market risks. Read all related documents carefully before investing.';
 export const KS = ['Not done yet, help me start KYC', 'Already KYC verified', 'Not sure'];
-export const INT = ['Equity', 'IPOs', 'ETFs', 'Not sure yet'];
+export const INT = [
+  'Equity (Cash & Delivery)',
+  'Futures & Options (F&O / Derivatives)',
+  'Intraday Trading',
+  'IPOs & Primary Market',
+  'Forex & Currency Trading',
+  'Commodities Trading (MCX)',
+  'ETFs (Exchange Traded Funds)',
+  'Mutual Funds',
+  'Bonds & Debt Securities',
+  'Portfolio Management & Advisory',
+  'Institutional Broking',
+  'Not sure yet',
+];
 export const NAV = {
   services: [
     ['Equity', '/equity'], ['IPOs', '/ipos'], ['ETFs', '/etfs'],

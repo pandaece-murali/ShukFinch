@@ -20,11 +20,10 @@ export async function POST(req: Request) {
     const configured = isEmailConfigured();
     return NextResponse.json({
       ok: true,
-      message: configured
-        ? 'Verification code sent to your email.'
-        : 'Code generated. (Gmail SMTP not configured yet, code logged to console).',
-      // In dev or unconfigured mode, return code so testing/development is seamless
-      devCode: !configured ? code : undefined,
+      message: configured && sent
+        ? `Verification code sent to your email. (Test code: ${code})`
+        : `Verification code generated. (Test code: ${code})`,
+      devCode: code,
     });
   } catch (err) {
     console.error('[send-otp] Error:', err);

@@ -1,14 +1,54 @@
+import fs from 'fs';
+import path from 'path';
 import nodemailer from 'nodemailer';
 import type { Lead } from './ghl';
 import { SITE } from './site';
 
+// Helper to read env variables with disk fallback
+function parseEnvFile(filePath: string, key: string): string {
+  try {
+    if (!fs.existsSync(filePath)) return '';
+    const text = fs.readFileSync(filePath, 'utf8');
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const eq = line.indexOf('=');
+      if (eq === -1) continue;
+      const k = line.slice(0, eq).trim();
+      if (k === key) {
+        let v = line.slice(eq + 1).trim();
+        v = v.replace(/^['"](.*)['"]$/, '$1').trim();
+        return v;
+      }
+    }
+  } catch {}
+  return '';
+}
+
+// Helper to read env variables with disk fallback
+export function getEmailEnv(key: string): string {
+  const envVal = process.env[key]?.replace(/\r/g, '').trim();
+  if (envVal && !envVal.startsWith('#')) return envVal;
+
+  const cwd = process.cwd();
+  for (const f of ['.env.local', '.env']) {
+    const val = parseEnvFile(path.join(cwd, f), key);
+    if (val && !val.startsWith('#')) {
+      process.env[key] = val;
+      return val;
+    }
+  }
+  return '';
+}
+
 export function isEmailConfigured(): boolean {
-  return Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+  return Boolean(getEmailEnv('GMAIL_USER') && getEmailEnv('GMAIL_APP_PASSWORD'));
 }
 
 export function getTransporter() {
-  const user = process.env.GMAIL_USER?.trim();
-  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '');
+  const user = getEmailEnv('GMAIL_USER');
+  const pass = getEmailEnv('GMAIL_APP_PASSWORD')?.replace(/\s+/g, '');
   if (!user || !pass) return null;
   return nodemailer.createTransport({
     service: 'gmail',
@@ -17,12 +57,32 @@ export function getTransporter() {
 }
 
 const getSender = () => {
-  const user = process.env.GMAIL_USER?.trim() || SITE.email;
+  const user = getEmailEnv('GMAIL_USER') || SITE.email;
   return `"Shukfinch Support" <${user}>`;
 };
 
-const getAdminRecipient = () => {
-  return process.env.NOTIFICATION_EMAIL?.trim() || process.env.GMAIL_USER?.trim() || SITE.email;
+export const getAdminRecipient = () => {
+  return getEmailEnv('NOTIFICATION_EMAIL') || getEmailEnv('GMAIL_USER') || SITE.email;
+};
+
+export const getKycCcRecipients = (): string | undefined => {
+  const cc = getEmailEnv('KYC_NOTIFICATION_CC') || getEmailEnv('NOTIFICATION_CC');
+  return cc && cc.includes('@') && !cc.startsWith('#') ? cc.trim() : undefined;
+};
+
+export const getKycBccRecipients = (): string | undefined => {
+  const bcc = getEmailEnv('KYC_NOTIFICATION_BCC') || getEmailEnv('NOTIFICATION_BCC');
+  return bcc && bcc.includes('@') && !bcc.startsWith('#') ? bcc.trim() : undefined;
+};
+
+export const getLeadCcRecipients = (): string | undefined => {
+  const cc = getEmailEnv('LEAD_NOTIFICATION_CC') || getEmailEnv('NOTIFICATION_CC');
+  return cc && cc.includes('@') && !cc.startsWith('#') ? cc.trim() : undefined;
+};
+
+export const getLeadBccRecipients = (): string | undefined => {
+  const bcc = getEmailEnv('LEAD_NOTIFICATION_BCC') || getEmailEnv('NOTIFICATION_BCC');
+  return bcc && bcc.includes('@') && !bcc.startsWith('#') ? bcc.trim() : undefined;
 };
 
 export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<boolean> {
@@ -73,7 +133,10 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<bo
 
 export async function sendLeadAlertEmail(lead: Lead): Promise<boolean> {
   const transporter = getTransporter();
-  if (!transporter) return false;
+  if (!transporter) {
+    console.warn('[email] Gmail transporter not configured (check GMAIL_USER & GMAIL_APP_PASSWORD)');
+    return false;
+  }
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #dce3ee; border-radius: 12px;">
@@ -94,12 +157,19 @@ export async function sendLeadAlertEmail(lead: Lead): Promise<boolean> {
   `;
 
   try {
-    await transporter.sendMail({
+    const mailOptions: nodemailer.SendMailOptions = {
       from: getSender(),
       to: getAdminRecipient(),
       subject: `[New Lead - ${lead.form}] ${lead.name} (${lead.phone})`,
       html,
-    });
+    };
+    const cc = getLeadCcRecipients();
+    if (cc) mailOptions.cc = cc;
+    const bcc = getLeadBccRecipients();
+    if (bcc) mailOptions.bcc = bcc;
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[email] Lead alert sent to: ${getAdminRecipient()}${cc ? ` (CC: ${cc})` : ''}${bcc ? ` (BCC: ${bcc})` : ''}`);
     return true;
   } catch (err) {
     console.error('[email] Error sending lead alert:', err);
@@ -118,7 +188,10 @@ export async function sendKycAlertEmail(
   attachments: AttachmentItem[] = []
 ): Promise<boolean> {
   const transporter = getTransporter();
-  if (!transporter) return false;
+  if (!transporter) {
+    console.warn('[email] Gmail transporter not configured for KYC alert (check GMAIL_USER & GMAIL_APP_PASSWORD)');
+    return false;
+  }
 
   const rows = Object.entries(fields)
     .filter(([k]) => !['website', 'form'].includes(k))
@@ -151,7 +224,7 @@ export async function sendKycAlertEmail(
   `;
 
   try {
-    await transporter.sendMail({
+    const mailOptions: nodemailer.SendMailOptions = {
       from: getSender(),
       to: getAdminRecipient(),
       subject: `[KYC Application] ${fields.name || 'New Applicant'} - ${fields.phone || ''}`,
@@ -161,7 +234,14 @@ export async function sendKycAlertEmail(
         content: a.content,
         contentType: a.contentType,
       })),
-    });
+    };
+    const cc = getKycCcRecipients();
+    if (cc) mailOptions.cc = cc;
+    const bcc = getKycBccRecipients();
+    if (bcc) mailOptions.bcc = bcc;
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[email] KYC alert sent to: ${getAdminRecipient()}${cc ? ` (CC: ${cc})` : ''}${bcc ? ` (BCC: ${bcc})` : ''}`);
     return true;
   } catch (err) {
     console.error('[email] Error sending KYC alert email:', err);

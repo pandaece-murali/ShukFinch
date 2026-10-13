@@ -8,6 +8,7 @@ import './globals.css';
 import Script from 'next/script';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { ScrollEffects } from '@/components/ScrollEffects';
 import { SITE } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <ScrollEffects />
         <Header />
         <main>{children}</main>
         <Footer />

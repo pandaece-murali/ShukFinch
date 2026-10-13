@@ -1,6 +1,6 @@
 'use client';
-import { useRef, useState, useEffect } from 'react';
-import { F, Honeypot, Thanks, type FP } from './Forms';
+import { useRef, useState } from 'react';
+import { F, Thanks, type FP } from './Forms';
 import { INT, SITE } from '@/lib/site';
 
 const STEPS: { t: string; s: string; f: FP[]; extra?: 'nominee' | 'consent' }[] = [
@@ -47,17 +47,10 @@ const STEPS: { t: string; s: string; f: FP[]; extra?: 'nominee' | 'consent' }[] 
     ],
   },
   {
-    t: 'Verify and submit',
-    s: 'Final step. Complete email verification before activating your account.',
+    t: 'Declaration and submit',
+    s: 'Final step. Confirm your details and accept terms to complete your application.',
     extra: 'consent',
-    f: [
-      {
-        label: 'Verification method',
-        name: 'verifyMethod',
-        opts: ['Aadhaar e-sign', 'Digilocker', 'Video verification with our team'],
-        full: true,
-      },
-    ],
+    f: [],
   },
 ];
 
@@ -74,27 +67,7 @@ export function KycForm() {
   const [st, setSt] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
   const [errMsg, setErrMsg] = useState('');
 
-  // Email OTP states
-  const [userEmail, setUserEmail] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpBusy, setOtpBusy] = useState(false);
-  const [otpStatus, setOtpStatus] = useState('');
-  const [countdown, setCountdown] = useState(0);
-
   const last = i === STEPS.length - 1;
-
-  useEffect(() => {
-    let t: NodeJS.Timeout;
-    if (countdown > 0) {
-      t = setTimeout(() => setCountdown(countdown - 1), 1000);
-    }
-    return () => clearTimeout(t);
-  }, [countdown]);
-
-  function syncEmail() {
-    const emailEl = ref.current?.querySelector<HTMLInputElement>('input[name="email"]');
-    if (emailEl?.value) setUserEmail(emailEl.value.trim());
-  }
 
   function valid() {
     const els = ref.current!.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
@@ -103,43 +76,8 @@ export function KycForm() {
     return Array.from(els).every((el) => el.reportValidity());
   }
 
-  async function sendEmailOtp() {
-    syncEmail();
-    const email = userEmail || ref.current?.querySelector<HTMLInputElement>('input[name="email"]')?.value?.trim();
-    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      setOtpStatus('Please enter a valid email address in Step 1 first.');
-      return;
-    }
-    setOtpBusy(true);
-    setOtpStatus('Sending verification code...');
-    try {
-      const res = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setOtpSent(true);
-        setCountdown(45);
-        setOtpStatus(
-          data.devCode
-            ? `Verification code sent! (Dev code: ${data.devCode})`
-            : 'Verification code sent to your email. Please check your inbox / spam.'
-        );
-      } else {
-        setOtpStatus(data.error || 'Failed to send verification code. Please try again.');
-      }
-    } catch {
-      setOtpStatus('Network error while sending OTP. Please try again.');
-    } finally {
-      setOtpBusy(false);
-    }
-  }
-
   async function next() {
     if (!valid()) return;
-    syncEmail();
     if (!last) {
       setI(i + 1);
       ref.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -190,49 +128,6 @@ export function KycForm() {
           <h3>{s.t}</h3>
           <p>{s.s}</p>
           <div className="fg2">
-            {/* Step 4 custom Email OTP section */}
-            {j === 3 && (
-              <div className="full" style={{ marginBottom: 16 }}>
-                <div style={{ background: 'var(--tint)', border: '1px solid var(--line)', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                    <div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Email Verification</span>
-                      <p style={{ fontSize: 13, color: 'var(--mute)', margin: '2px 0 0' }}>
-                        {userEmail ? `Verify code for ${userEmail}` : 'Code will be sent to the email provided in Step 1.'}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn bblue"
-                      onClick={sendEmailOtp}
-                      disabled={otpBusy || countdown > 0}
-                      style={{ padding: '8px 16px', fontSize: 13, minWidth: 120, height: 38 }}
-                    >
-                      {otpBusy ? 'Sending...' : countdown > 0 ? `Resend (${countdown}s)` : otpSent ? 'Resend Code' : 'Send Code to Email'}
-                    </button>
-                  </div>
-                  {otpStatus && (
-                    <p style={{ fontSize: 12.5, color: otpStatus.includes('failed') || otpStatus.includes('Please enter') ? '#E5484D' : '#058A25', marginTop: 8, fontWeight: 600 }}>
-                      {otpStatus}
-                    </p>
-                  )}
-                </div>
-
-                <label className="f" style={{ marginBottom: 0 }}>
-                  <span>Email Verification OTP *</span>
-                  <input
-                    name="emailOtp"
-                    type="text"
-                    inputMode="numeric"
-                    required
-                    maxLength={6}
-                    placeholder="Enter 6-digit code received on email"
-                    style={{ letterSpacing: '4px', fontWeight: 700, fontSize: 16 }}
-                  />
-                </label>
-              </div>
-            )}
-
             {s.f.map((f) => (
               <F key={f.name} {...f} />
             ))}
@@ -273,8 +168,11 @@ export function KycForm() {
         </div>
       ))}
 
-      <Honeypot />
-      {st === 'error' && <p className="fe">{errMsg || `We could not submit right now. Please try again or call ${SITE.phone}.`}</p>}
+      {st === 'error' && (
+        <div style={{ background: '#FFF0F0', border: '1px solid #FF8E8E', borderRadius: 10, padding: '12px 16px', margin: '16px 0', color: '#D32F2F', fontSize: 14, fontWeight: 600 }}>
+          ⚠️ Error: {errMsg || `We could not submit right now. Please try again or call ${SITE.phone}.`}
+        </div>
+      )}
 
       <div className="fb">
         <button
