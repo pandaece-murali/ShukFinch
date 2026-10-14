@@ -26,8 +26,23 @@ function parseEnvFile(filePath: string, key: string): string {
   return '';
 }
 
+const STATIC_ENVS: Record<string, string | undefined> = {
+  GMAIL_USER: process.env.GMAIL_USER,
+  GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD,
+  NOTIFICATION_EMAIL: process.env.NOTIFICATION_EMAIL,
+  NOTIFICATION_CC: process.env.NOTIFICATION_CC,
+  NOTIFICATION_BCC: process.env.NOTIFICATION_BCC,
+  KYC_NOTIFICATION_CC: process.env.KYC_NOTIFICATION_CC,
+  KYC_NOTIFICATION_BCC: process.env.KYC_NOTIFICATION_BCC,
+  LEAD_NOTIFICATION_CC: process.env.LEAD_NOTIFICATION_CC,
+  LEAD_NOTIFICATION_BCC: process.env.LEAD_NOTIFICATION_BCC,
+};
+
 // Helper to read env variables with disk fallback
 export function getEmailEnv(key: string): string {
+  const staticVal = STATIC_ENVS[key]?.replace(/\r/g, '').trim();
+  if (staticVal && !staticVal.startsWith('#')) return staticVal;
+
   const envVal = process.env[key]?.replace(/\r/g, '').trim();
   if (envVal && !envVal.startsWith('#')) return envVal;
 
@@ -47,11 +62,20 @@ export function isEmailConfigured(): boolean {
 }
 
 export function getTransporter() {
-  const user = getEmailEnv('GMAIL_USER');
-  const pass = getEmailEnv('GMAIL_APP_PASSWORD')?.replace(/\s+/g, '');
-  if (!user || !pass) return null;
+  const rawUser = getEmailEnv('GMAIL_USER');
+  const user = rawUser ? rawUser.replace(/^['"](.*)['"]$/, '$1').trim() : '';
+
+  const rawPass = getEmailEnv('GMAIL_APP_PASSWORD');
+  const pass = rawPass ? rawPass.replace(/^['"](.*)['"]$/, '$1').replace(/\s+/g, '') : '';
+
+  if (!user || !pass) {
+    console.warn('[email] SMTP credentials missing (check GMAIL_USER & GMAIL_APP_PASSWORD)');
+    return null;
+  }
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: { user, pass },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
@@ -299,3 +323,55 @@ export async function sendClientConfirmationEmail(
     return false;
   }
 }
+
+export async function sendLeadConfirmationEmail(
+  toEmail: string,
+  clientName: string,
+  formVariant: string
+): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) return false;
+
+  const title = formVariant === 'callback' ? 'Callback Request' : formVariant === 'contact' ? 'Inquiry' : 'Account Application';
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #dce3ee; border-radius: 14px; background: #ffffff;">
+      <div style="text-align: center; padding-bottom: 16px; border-bottom: 1px solid #eee;">
+        <h2 style="color: #0A1D37; margin: 0;">Shuk<span style="color: #1976FF;">Finch</span></h2>
+        <p style="color: #51627A; font-size: 13px; margin: 4px 0 0;">SEBI Reg. ${SITE.sebi} · BSE Member ${SITE.bse}</p>
+      </div>
+      <div style="padding: 22px 0;">
+        <h3 style="color: #0A1D37; margin: 0 0 10px;">Hello ${clientName || 'there'},</h3>
+        <p style="color: #333; font-size: 14.5px; line-height: 1.6;">
+          Thank you for reaching out to Shukfinch. We have successfully received your <b>${title}</b>.
+        </p>
+        <div style="background: #F0FBF2; border-left: 4px solid #00C833; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 18px 0;">
+          <p style="margin: 0; font-weight: 600; color: #04210C; font-size: 14px;">What happens next:</p>
+          <p style="margin: 6px 0 0; color: #2B5738; font-size: 13.5px;">
+            A representative from our onboarding and advisory desk in Fort, Mumbai will connect with you on your registered mobile number.
+          </p>
+        </div>
+        <p style="color: #555; font-size: 13.5px; line-height: 1.5;">
+          If you have any urgent queries, please feel free to call our desk directly at <b>${SITE.phone}</b> or reply to this email.
+        </p>
+      </div>
+      <div style="border-top: 1px solid #eee; padding-top: 14px; font-size: 12px; color: #8899A6; text-align: center;">
+        <p style="margin: 0;">${SITE.address}</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: getSender(),
+      to: toEmail,
+      subject: `Thank you for contacting Shukfinch - ${title} Received`,
+      html,
+    });
+    console.log(`[email] Confirmation sent to applicant: ${toEmail}`);
+    return true;
+  } catch (err) {
+    console.error('[email] Error sending lead confirmation:', err);
+    return false;
+  }
+}
+

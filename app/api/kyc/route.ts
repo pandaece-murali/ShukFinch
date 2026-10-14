@@ -135,17 +135,21 @@ export async function POST(req: Request) {
           })
         : Promise.resolve(),
 
-      // 3. Email KYC submission & documents via Gmail SMTP
+      // 3. Email KYC submission & documents to Admin via Gmail SMTP
       sendKycAlertEmail(fields, attachments)
-        .then(async (sent) => {
+        .then((sent) => {
           emailSent = sent;
-          if (email) {
-            await sendClientConfirmationEmail(email, get('name') || 'Applicant').catch(() => {});
-          }
         })
         .catch((mailErr) => {
-          console.error('❌ [KYC EMAIL ERROR]:', mailErr);
+          console.error('❌ [KYC ADMIN EMAIL ERROR]:', mailErr);
         }),
+
+      // 4. Send client confirmation email
+      email
+        ? sendClientConfirmationEmail(email, get('name') || 'Applicant').catch((clientErr) => {
+            console.error('❌ [KYC CLIENT EMAIL ERROR]:', clientErr);
+          })
+        : Promise.resolve(),
     ]);
 
     console.log(`[kyc] Application submitted: ${lead.name} (${lead.phone}) - CRM Contact ID: ${contactId} | Email: ${emailSent ? 'sent' : 'pending'}`);

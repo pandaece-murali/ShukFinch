@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cleanLead, ghlConfigured, pushToGhl } from '@/lib/ghl';
-import { sendLeadAlertEmail } from '@/lib/email';
+import { sendLeadAlertEmail, sendLeadConfirmationEmail } from '@/lib/email';
 
 const TAGS: Record<string, string> = {
   hero: 'Home Quick Apply',
@@ -32,12 +32,22 @@ export async function POST(req: Request) {
     }, { status: 422 });
   }
 
-  // Send email alert and push to GHL concurrently for near-instant form submission
+  // Send admin alert, applicant confirmation, and push to GHL concurrently
   let contactId = 'N/A';
   await Promise.allSettled([
+    // 1. Admin lead notification email
     sendLeadAlertEmail(lead).catch((emailErr) => {
-      console.error('❌ [LEAD EMAIL ERROR]:', emailErr);
+      console.error('❌ [LEAD ADMIN EMAIL ERROR]:', emailErr);
     }),
+
+    // 2. Client auto-confirmation email
+    lead.email
+      ? sendLeadConfirmationEmail(lead.email, lead.name, form).catch((clientErr) => {
+          console.error('❌ [LEAD CLIENT EMAIL ERROR]:', clientErr);
+        })
+      : Promise.resolve(),
+
+    // 3. GoHighLevel CRM Contact & Opportunity upsert
     ghlConfigured()
       ? pushToGhl(lead)
           .then((ghlRes) => {
