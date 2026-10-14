@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import nodemailer from 'nodemailer';
+import nodemailer, { type SendMailOptions } from 'nodemailer';
 import type { Lead } from './ghl';
 import { SITE } from './site';
 
@@ -157,7 +157,7 @@ export async function sendLeadAlertEmail(lead: Lead): Promise<boolean> {
   `;
 
   try {
-    const mailOptions: nodemailer.SendMailOptions = {
+    const mailOptions: SendMailOptions = {
       from: getSender(),
       to: getAdminRecipient(),
       subject: `[New Lead - ${lead.form}] ${lead.name} (${lead.phone})`,
@@ -224,7 +224,7 @@ export async function sendKycAlertEmail(
   `;
 
   try {
-    const mailOptions: nodemailer.SendMailOptions = {
+    const mailOptions: SendMailOptions = {
       from: getSender(),
       to: getAdminRecipient(),
       subject: `[KYC Application] ${fields.name || 'New Applicant'} - ${fields.phone || ''}`,

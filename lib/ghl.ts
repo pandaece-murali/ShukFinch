@@ -87,15 +87,8 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
 
   const [firstName, ...rest] = l.name.trim().split(/\s+/);
   const phone = /^\d{10}$/.test(l.phone) ? `+91${l.phone}` : l.phone;
-  const tags = ['Website Lead', ...l.tags];
-  if (l.interest) tags.push(`Interest: ${l.interest}`);
-  if (l.kycStatus) tags.push(`KYC: ${l.kycStatus}`);
-  if (l.occupation) tags.push(`Occupation: ${l.occupation}`);
-  if (l.income) tags.push(`Income: ${l.income}`);
-  if (l.pan) tags.push(`PAN: ${l.pan.toUpperCase()}`);
-  if (l.gender) tags.push(`Gender: ${l.gender}`);
-  if (l.addressProof) tags.push(`Proof: ${l.addressProof}`);
-  if (l.bestTime) tags.push(`Best Time: ${l.bestTime}`);
+  // Clean tags only (do NOT append custom field values into tags)
+  const tags = [...(l.tags || [])];
 
   if (webhookUrl) {
     const r = await fetch(webhookUrl, {
