@@ -33,19 +33,33 @@ export async function POST(req: Request) {
     }
   }
 
-  // Build application summary note for GoHighLevel CRM
+  // Build comprehensive application summary note for GoHighLevel CRM (matching the email alert)
   const kycNote = [
-    `📋 Account Opening & KYC Application Summary:`,
-    get('fatherName') ? `• Father's / Spouse's Name: ${get('fatherName')}` : null,
-    get('pan') ? `• PAN: ${get('pan').toUpperCase()}` : null,
-    get('dob') ? `• Date of Birth: ${get('dob')} (${get('gender') || 'N/A'})` : null,
-    get('addressProof') ? `• Address Proof Type: ${get('addressProof')}` : null,
-    get('address') ? `• Address: ${get('address')}, ${get('city') || ''} ${get('pin') ? 'PIN: ' + get('pin') : ''}` : null,
-    get('occupation') ? `• Occupation: ${get('occupation')} | Income: ${get('income') || 'N/A'}` : null,
-    get('interest') ? `• Interest: ${get('interest')}` : null,
-    get('bankName') ? `• Bank: ${get('bankName')} (${get('accountType') || ''}) | A/C: ${get('accountNumber') || ''} | IFSC: ${get('ifsc') || ''}` : null,
-    get('nomineeName') ? `• Nominee: ${get('nomineeName')} (${get('nomineeRel') || ''}${get('nomineeShare') ? ' - ' + get('nomineeShare') + '%' : ''})` : null,
-    attachments.length > 0 ? `• Uploaded Documents (${attachments.length}): ${attachments.map((a) => a.filename).join(', ')} (forwarded via email)` : null,
+    `📋 KYC APPLICATION DETAILS`,
+    `----------------------------------------`,
+    `Full Name: ${get('name')}`,
+    `Mobile Phone: ${get('phone')}`,
+    `Email: ${email || 'N/A'}`,
+    get('fatherName') ? `Father's / Spouse's Name: ${get('fatherName')}` : null,
+    get('dob') ? `Date of Birth: ${get('dob')}` : null,
+    get('gender') ? `Gender: ${get('gender')}` : null,
+    get('pan') ? `PAN Number: ${get('pan').toUpperCase()}` : null,
+    get('addressProof') ? `Address Proof Type: ${get('addressProof')}` : null,
+    get('address') ? `Current Address: ${get('address')}` : null,
+    get('city') ? `City: ${get('city')}` : null,
+    get('pin') ? `PIN Code: ${get('pin')}` : null,
+    get('occupation') ? `Occupation: ${get('occupation')}` : null,
+    get('income') ? `Annual Income: ${get('income')}` : null,
+    get('interest') ? `Interested Service: ${get('interest')}` : null,
+    get('bankName') ? `Bank Name: ${get('bankName')}` : null,
+    get('accountType') ? `Account Type: ${get('accountType')}` : null,
+    get('accountNumber') ? `Account Number: ${get('accountNumber')}` : null,
+    get('ifsc') ? `IFSC Code: ${get('ifsc').toUpperCase()}` : null,
+    get('nomineeName') ? `Nominee Name: ${get('nomineeName')}` : null,
+    get('nomineeRel') ? `Nominee Relationship: ${get('nomineeRel')}` : null,
+    get('nomineeShare') ? `Nominee Share: ${get('nomineeShare')}%` : null,
+    attachments.length > 0 ? `Uploaded Documents (${attachments.length}): ${attachments.map((a) => a.filename).join(', ')} (forwarded via email)` : 'Documents: None uploaded',
+    `Submitted At: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST`,
   ].filter(Boolean).join('\n');
 
   const lead = cleanLead(
@@ -86,49 +100,53 @@ export async function POST(req: Request) {
   }
 
   try {
-    // 1. Push contact and application note to GoHighLevel CRM
     const isConfigured = ghlConfigured();
     let contactId = 'N/A';
-    if (isConfigured) {
-      try {
-        const ghlRes = await pushToGhl(lead);
-        if (!ghlRes.ok) {
-          console.error('❌ [KYC GHL ERROR]:', ghlRes.error);
-        } else {
-          contactId = ghlRes.contactId || 'Success';
-        }
-      } catch (ghlErr) {
-        console.error('❌ [KYC GHL ERROR]:', (ghlErr as Error).message);
-      }
-    } else {
-      console.warn('[kyc] GHL not configured. Check GHL_API_TOKEN and GHL_LOCATION_ID in .env / .env.local');
-    }
-
-    // 2. Forward to external KYC provider if configured
-    if (process.env.KYC_FORWARD_URL) {
-      try {
-        await fetch(process.env.KYC_FORWARD_URL, {
-          method: 'POST',
-          body: fd,
-          headers: process.env.KYC_FORWARD_TOKEN
-            ? { Authorization: `Bearer ${process.env.KYC_FORWARD_TOKEN}` }
-            : undefined,
-        });
-      } catch (err) {
-        console.error('❌ [KYC FORWARD ERROR]:', err);
-      }
-    }
-
-    // 3. Email KYC submission & documents via Gmail SMTP
     let emailSent = false;
-    try {
-      emailSent = await sendKycAlertEmail(fields, attachments);
-      if (email) {
-        await sendClientConfirmationEmail(email, get('name') || 'Applicant');
-      }
-    } catch (mailErr) {
-      console.error('❌ [KYC EMAIL ERROR]:', mailErr);
-    }
+
+    // Run CRM push, external forwarding, and email delivery concurrently for maximum speed
+    await Promise.allSettled([
+      // 1. GoHighLevel CRM Contact & Note upsert
+      isConfigured
+        ? pushToGhl(lead)
+            .then((ghlRes) => {
+              if (!ghlRes.ok) {
+                console.error('❌ [KYC GHL ERROR]:', ghlRes.error);
+              } else {
+                contactId = ghlRes.contactId || 'Success';
+              }
+            })
+            .catch((ghlErr) => {
+              console.error('❌ [KYC GHL ERROR]:', (ghlErr as Error).message);
+            })
+        : Promise.resolve(),
+
+      // 2. Forward to external KYC provider if configured
+      process.env.KYC_FORWARD_URL
+        ? fetch(process.env.KYC_FORWARD_URL, {
+            method: 'POST',
+            body: fd,
+            headers: process.env.KYC_FORWARD_TOKEN
+              ? { Authorization: `Bearer ${process.env.KYC_FORWARD_TOKEN}` }
+              : undefined,
+            signal: AbortSignal.timeout(10000),
+          }).catch((err) => {
+            console.error('❌ [KYC FORWARD ERROR]:', err);
+          })
+        : Promise.resolve(),
+
+      // 3. Email KYC submission & documents via Gmail SMTP
+      sendKycAlertEmail(fields, attachments)
+        .then(async (sent) => {
+          emailSent = sent;
+          if (email) {
+            await sendClientConfirmationEmail(email, get('name') || 'Applicant').catch(() => {});
+          }
+        })
+        .catch((mailErr) => {
+          console.error('❌ [KYC EMAIL ERROR]:', mailErr);
+        }),
+    ]);
 
     console.log(`[kyc] Application submitted: ${lead.name} (${lead.phone}) - CRM Contact ID: ${contactId} | Email: ${emailSent ? 'sent' : 'pending'}`);
 

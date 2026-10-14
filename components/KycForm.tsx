@@ -76,6 +76,57 @@ export function KycForm() {
     return Array.from(els).every((el) => el.reportValidity());
   }
 
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') || file.size < 400 * 1024) {
+    return file;
+  }
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve(file);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => resolve(file);
+      img.onload = () => {
+        try {
+          const maxDim = 1600;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(file);
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob && blob.size < file.size) {
+                const newName = file.name.replace(/\.[^.]+$/, '.jpg');
+                resolve(new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() }));
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            0.82
+          );
+        } catch {
+          resolve(file);
+        }
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
   async function next() {
     if (!valid()) return;
     if (!last) {
@@ -87,28 +138,42 @@ export function KycForm() {
     setSt('busy');
     setErrMsg('');
     try {
-      const fd = new FormData(ref.current!);
+      const formEl = ref.current!;
+      const fd = new FormData();
       fd.set('form', 'kyc-application');
+
+      const elements = Array.from(formEl.elements) as (HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[];
+      for (const el of elements) {
+        if (!el.name || el.disabled) continue;
+        if (el.type === 'radio' || el.type === 'checkbox') {
+          if ((el as HTMLInputElement).checked) {
+            fd.append(el.name, el.value);
+          }
+        } else if (el.type === 'file') {
+          const files = (el as HTMLInputElement).files;
+          if (files && files.length > 0) {
+            for (let k = 0; k < files.length; k++) {
+              const file = files[k];
+              const processed = await compressImageIfNeeded(file);
+              fd.append(el.name, processed);
+            }
+          }
+        } else {
+          fd.append(el.name, el.value);
+        }
+      }
+
       const r = await fetch('/api/kyc', { method: 'POST', body: fd });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data.ok) {
         throw new Error(data.message || data.error || 'Submission failed');
       }
-      setSt('done');
+      // Direct navigation to thank-you page without showing inline thank-you message
+      window.location.assign('/thank-you?type=kyc');
     } catch (err: any) {
       setErrMsg(err?.message || `We could not submit right now. Please try again or call ${SITE.phone}.`);
       setSt('error');
     }
-  }
-
-  if (st === 'done') {
-    return (
-      <div className="fcard">
-        <Thanks
-          msg={`Your application is submitted. Our compliance team will verify your details and call you on your mobile number. A confirmation email has also been sent to your inbox. Questions? Call ${SITE.phone}.`}
-        />
-      </div>
-    );
   }
 
   return (

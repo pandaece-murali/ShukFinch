@@ -1,27 +1,126 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Cards, Cta, Faq, Pillars, Steps } from '@/components/Blocks';
 import { LeadForm } from '@/components/Forms';
 import { SERVICE_CARDS } from '@/lib/pages';
 import { SITE } from '@/lib/site';
 
-const STRIP: [string, string][] = [['50+ years', 'Of experience in the stock market'], ['Since 1998', 'Established as a Pvt Ltd company'], ['Funds kept separate', "From the broker's own funds"], ['Dalal Street', 'P. J. Tower, Fort, Mumbai']];
-const RS: [string, string][] = [['Research', 'Look deeper into companies and markets.'], ['Fundamental Analysis', 'Understand businesses beyond the share price.'], ['Technical Analysis', 'Study price movements and market behaviour.'], ['Market Trends', 'Stay aware of what is changing.']];
+export const metadata: Metadata = {
+  title: 'Shukfinch | SEBI Registered Stock Broker on Dalal Street, Mumbai',
+  description:
+    'Open Demat & Trading account with Shukfinch. SEBI registered stock broker (INZ000252338) & BSE member (0433) on Dalal Street, Mumbai. 50+ years of market experience, Equity, IPOs, ETFs & personal broker support.',
+  alternates: {
+    canonical: SITE.url,
+  },
+};
+
+const homeFaqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Is my money safe with Shukfinch?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: `Client funds are kept strictly separate from the broker's own funds in segregated accounts, and our operations follow SEBI and exchange requirements. Our SEBI registration number is ${SITE.sebi} and BSE member code is ${SITE.bse}.`,
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'I am new to investing. Can you help me start?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. You do not need to be an expert. Our team can guide you through opening your account, understanding KYC, and taking your first steps in the stock market.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Will someone push me to trade?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'No. We provide access, market information, and dealer support. Every investment decision is entirely yours.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I visit the Shukfinch office in Mumbai?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: `Yes. You can visit our registered office at ${SITE.address}.`,
+      },
+    },
+  ],
+};
+
+const STRIP: [string, string][] = [
+  ['50+ years', 'Of experience in the stock market'],
+  ['Since 1998', 'Established as a Pvt Ltd company'],
+  ['Funds kept separate', "From the broker's own funds"],
+  ['Dalal Street', 'P. J. Tower, Fort, Mumbai'],
+];
+const RS: [string, string][] = [
+  ['Research', 'Look deeper into companies and markets.'],
+  ['Fundamental Analysis', 'Understand businesses beyond the share price.'],
+  ['Technical Analysis', 'Study price movements and market behaviour.'],
+  ['Market Trends', 'Stay aware of what is changing.'],
+];
 
 export default function Home() {
   return (
     <>
-      <header className="hero"><div className="w">
-        <div>
-          <h1>Your Market. Your Investments. One Platform.</h1>
-          <p className="lead">Buy your first stock, apply for an IPO, build a diversified portfolio or track what you own, with market experience, modern technology and people you can reach when you need them.</p>
-          <div className="ctas"><a className="btn b1" href="#open">Open Your Account</a><a className="btn b2" href="#call">Talk to Our Team</a></div>
-          <div className="chips">
-            <span className="chip">SEBI Reg. <b>{SITE.sebi}</b></span><span className="chip"><b>50+ years</b> of market experience</span>
-            <span className="chip"><b>Pvt Ltd since 1998</b></span><span className="chip">Office on <b>Dalal Street</b></span>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqSchema) }}
+      />
+
+      <header className="hero">
+        <div className="hero-grid-pattern" aria-hidden="true" />
+        <div className="w">
+          <div className="hero-content">
+            <div className="hero-pill">
+              <span className="hero-pulse" />
+              <span>SEBI Registered Stock Broker · BSE Member {SITE.bse}</span>
+            </div>
+            <h1>
+              Your Market. Your Investments.{' '}
+              <span className="hero-gradient-text">One Platform.</span>
+            </h1>
+            <p className="lead">
+              Buy your first stock, apply for an IPO, build a diversified portfolio or track what you own—backed by 50+ years of Dalal Street market trust, modern technology, and personal broker support.
+            </p>
+            <div className="ctas">
+              <a className="btn b1 hero-cta-btn" href="#open">
+                Open Demat Account
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 6 }}>
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </a>
+              <Link className="btn b2 hero-secondary-btn" href="/personal-support">
+                Talk to Our Desk
+              </Link>
+            </div>
+            <div className="chips">
+              <span className="chip">
+                <span className="chip-dot" /> SEBI Reg. <b>{SITE.sebi}</b>
+              </span>
+              <span className="chip">
+                <span className="chip-dot" /> <b>50+ Years</b> Market Legacy
+              </span>
+              <span className="chip">
+                <span className="chip-dot" /> BSE Member <b>{SITE.bse}</b>
+              </span>
+              <span className="chip">
+                <span className="chip-dot" /> Office on <b>Dalal Street, Mumbai</b>
+              </span>
+            </div>
+          </div>
+          <div className="hero-form-wrapper">
+            <LeadForm variant="hero" />
           </div>
         </div>
-        <LeadForm variant="hero" />
-      </div></header>
+      </header>
 
       <section className="strip"><div className="w">{STRIP.map(([a, b]) => <div key={a} className="i"><strong>{a}</strong><small>{b}</small></div>)}</div></section>
 
@@ -38,10 +137,26 @@ export default function Home() {
         </div>
       </div></section>
 
-      <section className="sec" style={{ paddingTop: 0 }}><div className="w">
-        <div className="head"><h2>Everything you need, without the complexity</h2><p className="lead" style={{ maxWidth: 420 }}>You should not need five different places to manage your investments.</p></div>
-        <Cards cards={SERVICE_CARDS} />
-      </div></section>
+      <section className="sec services-section" style={{ paddingTop: 24 }}>
+        <div className="w">
+          <div className="services-head-block">
+            <div className="services-pill">
+              <span className="services-pill-dot" />
+              <span>Investment &amp; Trading Suite</span>
+            </div>
+            <div className="head">
+              <h2>
+                Everything you need,{' '}
+                <span className="services-gradient-text">without the complexity</span>
+              </h2>
+              <p className="lead" style={{ maxWidth: 460 }}>
+                One connected platform to trade equities, subscribe to IPOs, invest in ETFs, and track your complete portfolio in real time.
+              </p>
+            </div>
+          </div>
+          <Cards cards={SERVICE_CARDS} />
+        </div>
+      </section>
 
       <section className="sec steps"><div className="w">
         <div className="head"><h2>Open your account in four simple steps</h2></div>

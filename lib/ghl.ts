@@ -133,37 +133,84 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
     payload.dateOfBirth = l.dateOfBirth.trim();
   }
 
-  // Custom Fields mapping (GoHighLevel Custom Field IDs)
-  const customFields: Array<{ id: string; value: unknown }> = [];
-  const addCustomField = (envKey: string, val: unknown) => {
-    const id = getGhlEnv(envKey);
-    if (id && val !== undefined && val !== null && String(val).trim() !== '') {
-      customFields.push({ id, value: val });
+  // Map custom fields directly by key without fetching IDs from API
+  const customFields: Array<Record<string, unknown>> = [];
+  const addCustomField = (envKey: string, fallbackKey: string, val: unknown) => {
+    if (val === undefined || val === null || String(val).trim() === '') return;
+    const cleanVal = String(val).trim();
+    const rawKey = getGhlEnv(envKey) || fallbackKey;
+    if (!rawKey) return;
+
+    const item: Record<string, unknown> = {
+      key: rawKey,
+      field_value: cleanVal,
+      value: cleanVal,
+    };
+    if (!rawKey.startsWith('contact.')) {
+      item.id = rawKey;
     }
+    customFields.push(item);
   };
 
-  addCustomField('GHL_FIELD_FATHER_NAME', l.fatherName?.trim());
-  addCustomField('GHL_FIELD_GENDER', l.gender?.trim());
-  addCustomField('GHL_FIELD_OCCUPATION', l.occupation?.trim());
-  addCustomField('GHL_FIELD_ANNUAL_INCOME', l.income?.trim());
-  addCustomField('GHL_FIELD_MOST_INTERESTED_SERVICE', l.interest?.trim());
-  addCustomField('GHL_FIELD_PAN_NUMBER', l.pan?.trim().toUpperCase());
-  addCustomField('GHL_FIELD_ADDRESS_PROOF_TYPE', l.addressProof?.trim());
-  addCustomField('GHL_FIELD_MESSAGE', l.message?.trim());
+  addCustomField('GHL_FIELD_FATHER_NAME', 'contact.father_name', l.fatherName);
+  addCustomField('GHL_FIELD_GENDER', 'contact.gender', l.gender);
+  addCustomField('GHL_FIELD_OCCUPATION', 'contact.occupation', l.occupation);
+  addCustomField('GHL_FIELD_ANNUAL_INCOME', 'contact.annual_income', l.income);
+  addCustomField('GHL_FIELD_MOST_INTERESTED_SERVICE', 'contact.most_interested_service', l.interest);
+  addCustomField('GHL_FIELD_PAN_NUMBER', 'contact.pan_number', l.pan?.toUpperCase());
+  addCustomField('GHL_FIELD_ADDRESS_PROOF_TYPE', 'contact.address_proof_type', l.addressProof);
+  addCustomField('GHL_FIELD_BANK_NAME', 'contact.bank_name', l.bankName);
+  addCustomField('GHL_FIELD_ACCOUNT_TYPE', 'contact.account_type', l.accountType);
+  addCustomField('GHL_FIELD_ACCOUNT_NUMBER', 'contact.account_number', l.accountNumber);
+  addCustomField('GHL_FIELD_IFSC', 'contact.ifsc', l.ifsc);
+  addCustomField('GHL_FIELD_NOMINEE_NAME', 'contact.nominee_name', l.nomineeName);
+  addCustomField('GHL_FIELD_NOMINEE_REL', 'contact.nominee_rel', l.nomineeRel);
+  addCustomField('GHL_FIELD_MESSAGE', 'contact.message', l.message);
 
   if (customFields.length > 0) {
     payload.customFields = customFields;
   }
 
-  const r = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      Version: '2021-07-28',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  let r: Response;
+  try {
+    r = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        Version: '2021-07-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (fetchErr) {
+    console.error('[ghl] Upsert fetch error:', (fetchErr as Error).message);
+    return { ok: false, error: (fetchErr as Error).message };
+  }
+
+  // If upsert failed (e.g. 400 Bad Request due to invalid custom field IDs) and customFields were included:
+  // Retry without customFields so the contact is still successfully created and all details are preserved in notes!
+  if (!r.ok && customFields.length > 0) {
+    const errText = await r.text().catch(() => '');
+    console.warn(`[ghl] Upsert with custom fields failed (${r.status}): ${errText}. Retrying with core contact fields...`);
+    const fallbackPayload = { ...payload };
+    delete fallbackPayload.customFields;
+    try {
+      r = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          Version: '2021-07-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fallbackPayload),
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (retryErr) {
+      console.error('[ghl] Upsert fallback error:', (retryErr as Error).message);
+      return { ok: false, error: (retryErr as Error).message };
+    }
+  }
 
   const responseText = await r.text().catch(() => '');
   let data: any = null;
@@ -189,10 +236,13 @@ export async function pushToGhl(l: Lead): Promise<{ ok: boolean; contactId?: str
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ body: l.noteBody }),
+        signal: AbortSignal.timeout(10000),
       });
       if (!noteRes.ok) {
         const noteErr = await noteRes.text().catch(() => '');
         console.warn(`[ghl] Note creation status ${noteRes.status}:`, noteErr);
+      } else {
+        console.log(`[ghl] Note successfully attached to contact: ${contactId}`);
       }
     } catch (noteErr) {
       console.warn('[ghl] Note creation error:', (noteErr as Error).message);
@@ -236,7 +286,7 @@ export function cleanLead(d: Record<string, unknown>, form: string, tags: string
     nomineeName: s(d.nomineeName),
     nomineeRel: s(d.nomineeRel),
     verifyMethod: s(d.verifyMethod),
-    noteBody: s(d.noteBody, 3000) || undefined,
+    noteBody: s(d.noteBody, 5000) || undefined,
     tags,
   };
 }

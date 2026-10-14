@@ -20,10 +20,27 @@ export function Cards({ cards, cols }: { cards: Card[]; cols?: 2 | 4 }) {
     <div className={'grid' + (cols === 2 ? ' g2' : cols === 4 ? ' g4' : '')}>
       {cards.map((c, i) => (
         <div key={c.t} className={'card' + (c.feat ? ' feat' : '')}>
-          <div className={'ic c' + (1 + (i % 2))} style={c.feat ? { background: 'rgba(255,255,255,.2)', color: '#fff' } : undefined}><Icon n={c.i} /></div>
+          <div className="card-top-row">
+            <div className={'ic c' + (1 + (i % 2))} style={c.feat ? { background: 'rgba(255,255,255,.2)', color: '#fff' } : undefined}>
+              <Icon n={c.i} />
+            </div>
+            {c.tag && (
+              <span className={'card-tag' + (c.feat ? ' card-tag-feat' : '')}>
+                {c.tag}
+              </span>
+            )}
+          </div>
           <h3>{c.t}</h3>
           <p><Rich t={c.p} /></p>
-          {c.l && <Link href={c.l[1]}>{c.l[0]}</Link>}
+          {c.l && (
+            <Link href={c.l[1]} className="card-link">
+              <span>{c.l[0]}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="card-arrow">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          )}
         </div>
       ))}
     </div>

@@ -124,9 +124,6 @@ export function Header() {
             </div>
           </div>
 
-          <a className="login" href="/contact" title="Trading Portal & Support">
-            Client Login
-          </a>
           <Link className="btn b1 desktop-cta" href="/account-opening">
             Open Your Account
           </Link>

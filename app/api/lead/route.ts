@@ -32,29 +32,26 @@ export async function POST(req: Request) {
     }, { status: 422 });
   }
 
-  // 1. Send immediate email alert via Gmail SMTP if configured
-  try {
-    await sendLeadAlertEmail(lead);
-  } catch (emailErr) {
-    console.error('❌ [LEAD EMAIL ERROR]:', emailErr);
-  }
-
-  // 2. Push to GoHighLevel if configured
+  // Send email alert and push to GHL concurrently for near-instant form submission
   let contactId = 'N/A';
-  if (ghlConfigured()) {
-    try {
-      const ghlRes = await pushToGhl(lead);
-      if (!ghlRes.ok) {
-        console.error('❌ [LEAD GHL ERROR]:', ghlRes.error);
-      } else {
-        contactId = ghlRes.contactId || 'Created';
-      }
-    } catch (e) {
-      console.error('❌ [LEAD GHL ERROR]:', (e as Error).message);
-    }
-  } else {
-    console.warn('[lead] GHL not configured. Check GHL_API_TOKEN and GHL_LOCATION_ID in .env');
-  }
+  await Promise.allSettled([
+    sendLeadAlertEmail(lead).catch((emailErr) => {
+      console.error('❌ [LEAD EMAIL ERROR]:', emailErr);
+    }),
+    ghlConfigured()
+      ? pushToGhl(lead)
+          .then((ghlRes) => {
+            if (!ghlRes.ok) {
+              console.error('❌ [LEAD GHL ERROR]:', ghlRes.error);
+            } else {
+              contactId = ghlRes.contactId || 'Created';
+            }
+          })
+          .catch((e) => {
+            console.error('❌ [LEAD GHL ERROR]:', (e as Error).message);
+          })
+      : Promise.resolve(),
+  ]);
 
   console.log(`[lead] Submitted (${form}): ${lead.name} (${lead.phone}) - CRM Contact ID: ${contactId}`);
 
