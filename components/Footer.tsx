@@ -7,7 +7,7 @@ export function Footer() {
       <div className="fg">
         <div>
           <div className="logo">{/* eslint-disable-next-line @next/next/no-img-element */}<img alt="" src="/logo-mark.png" height={46} /><div>Shuk<i>Finch</i></div></div>
-          <p>Smart Finance. Better Future.</p>
+          <p>.PROSPERITY IN MOTION.</p>
           <p style={{ marginTop: 12 }}>{SITE.address}</p>
         </div>
         <div><h4>Services</h4><Link href="/equity">Equity</Link><Link href="/ipos">IPOs</Link><Link href="/etfs">ETFs</Link><Link href="/demat-trading-account">Demat &amp; Trading Account</Link><Link href="/research">Research</Link></div>
